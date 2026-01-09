@@ -93,10 +93,19 @@ export default function AddListings() {
     return () => { mounted = false; };
   }, [currentId]);
 
-  // Derive categories from fetched data
+  // Derive categories from fetched data (case-insensitive dedupe, friendly display)
   const CATEGORY_SET = React.useMemo(() => {
-    const cats = Array.from(new Set(items.map(it => it.category).filter(Boolean)));
-    // Provide a fallback if none detected
+    const map = new Map();
+    (items || []).forEach(it => {
+      const cat = (it.category || '').trim();
+      if (!cat) return;
+      const key = cat.toLowerCase();
+      if (!map.has(key)) {
+        const display = cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase();
+        map.set(key, display);
+      }
+    });
+    const cats = Array.from(map.values());
     return cats.length > 0 ? cats : ['Vegetable', 'Meat', 'Fruit', 'Fish', 'Poultry', 'Grocery', 'Pasalubong', 'Hair'];
   }, [items]);
 

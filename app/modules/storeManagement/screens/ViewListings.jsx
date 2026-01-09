@@ -141,8 +141,17 @@ export default function ViewListings() {
   };
 
   const CATEGORY_SET = React.useMemo(() => {
-    const set = new Set(listings.map(l => l.category).filter(Boolean));
-    const arr = Array.from(set);
+    const map = new Map();
+    (listings || []).forEach(l => {
+      const cat = (l.category || '').trim();
+      if (!cat) return;
+      const key = cat.toLowerCase();
+      if (!map.has(key)) {
+        const display = cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase();
+        map.set(key, display);
+      }
+    });
+    const arr = Array.from(map.values());
     return arr.length > 0 ? arr : ['Vegetable','Meat','Fruit','Fish','Poultry','Grocery','Pasalubong'];
   }, [listings]);
   const toggleCategory = (c) => {
