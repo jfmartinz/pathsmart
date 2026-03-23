@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -57,12 +58,26 @@ export default function Sidebar({ onAccountPress }) {
           style={[styles.iconBtn, styles.dashboardBtn]}
           onPress={handleGoToDashboard}
         >
-          <Image
-            // Using a home icon as the dashboard symbol; swap if you prefer another.
-            source={require('../../../assets/home.png')}
-            style={[styles.sidebarIcon, styles.dashboardIcon]}
-          />
+          <Feather name="grid" size={ICON_SIZE} color="#fff" />
           {sidebarExpanded && <Text style={styles.menuText}>Dashboard</Text>}
+        </TouchableOpacity>
+
+        {/* Stall Profiles Navigation */}
+        <TouchableOpacity
+          style={styles.iconBtn}
+          onPress={() => router.push('/modules/storeManagement/screens/StallProfiles')}
+        >
+          <Feather name="home" size={ICON_SIZE} color="#fff" />
+          {sidebarExpanded && <Text style={styles.menuText}>Stall Profiles</Text>}
+        </TouchableOpacity>
+
+        {/* Messages Navigation */}
+        <TouchableOpacity
+          style={styles.iconBtn}
+          onPress={() => router.push('/modules/storeManagement/screens/MessageRequest')}
+        >
+          <Feather name="mail" size={ICON_SIZE} color="#fff" />
+          {sidebarExpanded && <Text style={styles.menuText}>Messages</Text>}
         </TouchableOpacity>
       </View>
 

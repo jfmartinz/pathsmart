@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useState, useEffect } from "react";
 import { useAuth } from "../../../context/AuthContext";
 
@@ -201,6 +202,19 @@ export default function Account() {
           </TouchableOpacity>
         </View>
       )}
+      <TouchableOpacity
+        style={[
+          styles.menuItem,
+          activeTab === "messages" && styles.activeMenuItem,
+        ]}
+        onPress={() => {
+          setActiveTab("messages");
+          router.push("/modules/stallManagement/screens/messageInbox");
+        }}
+      >
+        <Ionicons name="mail" size={24} color="#fff" />
+        {sidebarExpanded && <Text style={styles.menuText}>Messages</Text>}
+      </TouchableOpacity>
       <View style={styles.sidebarBottom}>
         <TouchableOpacity
           style={[
