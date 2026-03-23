@@ -159,6 +159,19 @@ export default function AdminInterface() {
           </TouchableOpacity>
         </View>
       )}
+      <TouchableOpacity
+        style={[
+          styles.menuItem,
+          activeTab === "messages" && styles.activeMenuItem,
+        ]}
+        onPress={() => {
+          setActiveTab("messages");
+          router.push("/modules/stallManagement/screens/messageInbox");
+        }}
+      >
+        <Ionicons name="mail" size={24} color="#fff" />
+        {sidebarExpanded && <Text style={styles.menuText}>Messages</Text>}
+      </TouchableOpacity>
       <View style={styles.sidebarBottom}>
         <TouchableOpacity
           style={[

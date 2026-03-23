@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../../context/AuthContext";
 import { supabase } from "../../../../backend/supabaseClient";
 import AccountCreationModal from "../components/accountCreationModal";
@@ -247,6 +248,19 @@ export default function AccountCreation() {
           </TouchableOpacity>
         </View>
       )}
+      <TouchableOpacity
+        style={[
+          styles.menuItem,
+          activeTab === "messages" && styles.activeMenuItem,
+        ]}
+        onPress={() => {
+          setActiveTab("messages");
+          router.push("/modules/stallManagement/screens/messageInbox");
+        }}
+      >
+        <Ionicons name="mail" size={24} color="#fff" />
+        {sidebarExpanded && <Text style={styles.menuText}>Messages</Text>}
+      </TouchableOpacity>
       <View style={styles.sidebarBottom}>
         <TouchableOpacity
           style={[

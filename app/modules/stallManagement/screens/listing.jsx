@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../../../backend/supabaseClient";
 import AddListingModal from "../components/addListingModal";
 import EditListingModal from "../components/editListingModal";
@@ -307,6 +308,19 @@ export default function ListingPage() {
           </TouchableOpacity>
         </View>
       )}
+      <TouchableOpacity
+        style={[
+          styles.menuItem,
+          activeTab === "messages" && styles.activeMenuItem,
+        ]}
+        onPress={() => {
+          setActiveTab("messages");
+          router.push("/modules/stallManagement/screens/messageInbox");
+        }}
+      >
+        <Ionicons name="mail" size={24} color="#fff" />
+        {sidebarExpanded && <Text style={styles.menuText}>Messages</Text>}
+      </TouchableOpacity>
       <View style={styles.sidebarBottom}>
         <TouchableOpacity
           style={[
