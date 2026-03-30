@@ -2,133 +2,24 @@ import {
   View,
   Text,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
+  TextInput,
   Image,
 } from "react-native";
-import { useState } from "react";
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { useAuth } from "../../../context/AuthContext";
-import { supabase } from "../../../../backend/supabaseClient";
-import AccountCreationModal from "../components/accountCreationModal";
-import bcrypt from "bcryptjs";
 
-export default function AccountCreation() {
-  const [firstName, setFirstName] = useState("");
-  const [middleName, setMiddleName] = useState("");
-  const [lastName, setLastName] = useState("");
+export default function StallPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState("users");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [activeTab, setActiveTab] = useState("settings");
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [showProductSubmenu, setShowProductSubmenu] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [credentials, setCredentials] = useState({
-    username: "",
-    password: "",
-  });
-  const { logout } = useAuth();
 
-  function generateUsername(first, last, existingUsernames) {
-    let base = `${first}_${last}`.toLowerCase().replace(/\s+/g, "");
-    let username = base;
-    let count = 1;
-    while (existingUsernames.includes(username)) {
-      username = `${base}${count}`;
-      count++;
-    }
-    return username;
-  }
-
-  function generatePassword(length = 8) {
-    const chars =
-      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let pass = "";
-    for (let i = 0; i < length; i++) {
-      pass += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return pass;
-  }
-
-  const handleCreateAccount = async () => {
-    if (!firstName || !lastName) {
-      alert("First and Last names are required");
-      return;
-    }
-
-    // Fetch existing usernames
-    const { data: existing, error } = await supabase
-      .from("stall_owner_account")
-      .select("username");
-    if (error) {
-      alert("Error fetching usernames");
-      return;
-    }
-    const existingUsernames = existing.map(u => u.username);
-
-    // Generate username and password
-    let username = generateUsername(firstName, lastName, existingUsernames);
-    const password = generatePassword();
-
-    // Hash the password
-    const hashedPassword = bcrypt.hashSync(password, 10);
-
-    let insertError;
-    let attempt = 0;
-    let newAccountId = null;
-
-    do {
-      const { data: accountData, error: accError } = await supabase
-        .from("stall_owner_account")
-        .insert([
-          {
-            username,
-            password: hashedPassword,
-          },
-        ])
-        .select("stall_owner_account_id") // get the generated ID back
-        .single();
-
-      insertError = accError;
-      if (!accError) {
-        newAccountId = accountData.stall_owner_account_id; // capture the ID
-      }
-
-      if (insertError && insertError.message.includes("duplicate key value")) {
-        attempt++;
-        username = generateUsername(firstName, lastName, [
-          ...existingUsernames,
-          username,
-        ]);
-      }
-    } while (
-      insertError &&
-      insertError.message.includes("duplicate key value") &&
-      attempt < 50
-    );
-
-    if (insertError) {
-      alert(`Error creating account: ${insertError.message}`);
-      return;
-    }
-
-    // Insert into stall_owner, linking the FK
-    const { error: checkError } = await supabase.from("stall_owner").insert([
-      {
-        first_name: firstName,
-        middle_name: middleName,
-        last_name: lastName,
-        stall_owner_account_id: newAccountId,
-      },
-    ]);
-    if (checkError) {
-      alert(`Error creating stall owner: ${checkError.message}`);
-      return;
-    }
-
-    setCredentials({ username, password });
-    setModalVisible(true);
-  };
+  // No stalls available in this example
+  const stalls = [];
 
   // Function to handle sidebar hover
   const expandSidebar = () => {
@@ -148,8 +39,17 @@ export default function AccountCreation() {
 
   // Function to handle logout
   const handleLogout = () => {
-    logout();
-    router.replace("/screens/loginScreen");
+    // Navigate back to the login page
+    router.push("/screens/loginScreen");
+  };
+
+  const handleSearch = text => {
+    setSearchTerm(text);
+    // Add search logic here
+  };
+
+  const handleChangePage = page => {
+    setCurrentPage(page);
   };
 
   // Render the sidebar menu
@@ -294,10 +194,7 @@ export default function AccountCreation() {
           />
           {sidebarExpanded && <Text style={styles.menuText}>Account</Text>}
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => handleLogout()}
-        >
+        <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
           <Image
             source={require("../../../assets/logout.png")}
             style={styles.logoImage}
@@ -312,75 +209,116 @@ export default function AccountCreation() {
     <View style={styles.container}>
       {renderSidebar()}
       <View style={styles.mainContent}>
-        <Text style={styles.title}>Account Creation</Text>
+        <Text style={styles.title}>Manage Stalls</Text>
         <Text style={styles.description}>
-          Automatically create accounts for stall owners.
+          Admin can manage list of stalls in NCPM in this section
         </Text>
 
-        <Text style={styles.sectionTitle}>Personal Information</Text>
-
-        <View style={styles.inputContainer}>
-          <View style={styles.iconContainer}>
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search for stall name"
+            value={searchTerm}
+            onChangeText={handleSearch}
+          />
+          <TouchableOpacity style={styles.searchButton}>
             <Image
-              source={require("../../../assets/user-icon.png")}
+              source={require("../../../assets/search.png")}
               style={styles.logoImage}
             />
-          </View>
-          <TextInput
-            style={styles.input}
-            placeholder="First Name"
-            value={firstName}
-            onChangeText={setFirstName}
-          />
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.inputContainer}>
-          <View style={styles.iconContainer}>
-            <Image
-              source={require("../../../assets/user-icon.png")}
-              style={styles.logoImage}
-            />
-          </View>
-          <TextInput
-            style={styles.input}
-            placeholder="Middle Name"
-            value={middleName}
-            onChangeText={setMiddleName}
-          />
+        <Text style={styles.sectionTitle}>Stalls</Text>
+
+        <View style={styles.stallsList}>
+          {stalls.length > 0 ? (
+            stalls.map((stall, index) => (
+              <View key={index} style={styles.stallItem}>
+                <Text>{stall.name}</Text>
+              </View>
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              {/* Empty state for stalls list */}
+            </View>
+          )}
         </View>
 
-        <View style={styles.inputContainer}>
-          <View style={styles.iconContainer}>
-            <Image
-              source={require("../../../assets/user-icon.png")}
-              style={styles.logoImage}
-            />
-          </View>
-          <TextInput
-            style={styles.input}
-            placeholder="Last Name"
-            value={lastName}
-            onChangeText={setLastName}
-          />
+        <View style={styles.pagination}>
+          <TouchableOpacity
+            style={[
+              styles.pageButton,
+              currentPage === 1 && styles.activePageButton,
+            ]}
+            onPress={() => handleChangePage(1)}
+          >
+            <Text
+              style={[
+                styles.pageButtonText,
+                currentPage === 1 && styles.activePageButtonText,
+              ]}
+            >
+              1
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.pageButton,
+              currentPage === 2 && styles.activePageButton,
+            ]}
+            onPress={() => handleChangePage(2)}
+          >
+            <Text
+              style={[
+                styles.pageButtonText,
+                currentPage === 2 && styles.activePageButtonText,
+              ]}
+            >
+              2
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.pageButton,
+              currentPage === 3 && styles.activePageButton,
+            ]}
+            onPress={() => handleChangePage(3)}
+          >
+            <Text
+              style={[
+                styles.pageButtonText,
+                currentPage === 3 && styles.activePageButtonText,
+              ]}
+            >
+              3
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.pageButton,
+              currentPage === 4 && styles.activePageButton,
+            ]}
+            onPress={() => handleChangePage(4)}
+          >
+            <Text
+              style={[
+                styles.pageButtonText,
+                currentPage === 4 && styles.activePageButtonText,
+              ]}
+            >
+              4
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.nextButton}
+            onPress={() => {
+              currentPage < 4 && handleChangePage(currentPage + 1);
+            }}
+          >
+            <Text style={styles.nextButtonText}>Next</Text>
+          </TouchableOpacity>
         </View>
-
-        <TouchableOpacity
-          style={styles.createButton}
-          onPress={handleCreateAccount}
-        >
-          <Text style={styles.buttonText}>Create Account</Text>
-        </TouchableOpacity>
-
-        <AccountCreationModal
-          visible={modalVisible}
-          credentials={credentials}
-          onContinue={() => {
-            setModalVisible(false);
-            setFirstName("");
-            setMiddleName("");
-            setLastName("");
-          }}
-        />
       </View>
     </View>
   );
@@ -396,62 +334,96 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     padding: 0,
-    backgroundColor: "#fff",
-    height: "100vh",
+    backgroundColor: "#ffffff",
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 4,
-    color: "#000",
+    color: "#333",
   },
   description: {
-    fontSize: 14,
+    fontSize: 16,
     color: "#666",
-    marginBottom: 36,
+    marginBottom: 32,
+  },
+  searchContainer: {
+    flexDirection: "row",
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 4,
+    height: 40,
+    marginBottom: 24,
+    width: "60%",
+    alignSelf: "flex-end",
+  },
+  searchInput: {
+    flex: 1,
+    paddingHorizontal: 12,
+    height: 40,
+  },
+  searchButton: {
+    padding: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  searchIcon: {
+    fontSize: 18,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 16,
-    color: "#000",
+    color: "#333",
   },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 5,
-    height: 50,
-    width: 500,
-  },
-  iconContainer: {
-    paddingHorizontal: 10,
-    justifyContent: "center",
-  },
-  inputIcon: {
-    fontSize: 18,
-    color: "#666",
-  },
-  input: {
+  stallsList: {
     flex: 1,
-    width: "100%",
-    height: 50,
-    paddingVertical: 8,
+    marginVertical: 20,
   },
-  createButton: {
-    backgroundColor: "#5c9a6c",
-    borderRadius: 5,
+  stallItem: {
     padding: 16,
-    alignItems: "center",
-    marginTop: 24,
-    width: 500,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
   },
-  buttonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
+  emptyState: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    minHeight: 200,
+  },
+  pagination: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 40,
+    paddingBottom: 20,
+  },
+  pageButton: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#e0e0e0",
+    marginHorizontal: 4,
+    borderRadius: 4,
+  },
+  activePageButton: {
+    backgroundColor: "#5c9a6c",
+  },
+  pageButtonText: {
+    color: "#333",
+  },
+  activePageButtonText: {
+    color: "#fff",
+  },
+  nextButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginLeft: 8,
+  },
+  nextButtonText: {
+    color: "#333",
+    fontWeight: "500",
   },
   sidebar: {
     width: 60,

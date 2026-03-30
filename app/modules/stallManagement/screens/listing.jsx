@@ -311,6 +311,22 @@ export default function ListingPage() {
       <TouchableOpacity
         style={[
           styles.menuItem,
+          activeTab === "settings" && styles.activeMenuItem,
+        ]}
+        onPress={() => {
+          setActiveTab("settings");
+          router.push("/modules/stallManagement/screens/stall");
+        }}
+      >
+        <Image
+          source={require("../../../assets/stall.png")}
+          style={styles.logoImage}
+        />
+        {sidebarExpanded && <Text style={styles.menuText}>Stalls</Text>}
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[
+          styles.menuItem,
           activeTab === "messages" && styles.activeMenuItem,
         ]}
         onPress={() => {
