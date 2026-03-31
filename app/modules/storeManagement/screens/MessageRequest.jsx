@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,13 +10,13 @@ import {
   Pressable,
   ActivityIndicator,
   Image,
-} from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
-import { useAuth } from '../../../context/AuthContext';
-import Sidebar from '../components/Sidebar';
-import { supabase } from '../../../../backend/supabaseClient';
+} from "react-native";
+import { Feather } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
+import { useAuth } from "../../../context/AuthContext";
+import Sidebar from "../components/Sidebar";
+import { supabase } from "../../../../backend/supabaseClient";
 
 export default function MessageRequest() {
   const router = useRouter();
@@ -29,10 +29,10 @@ export default function MessageRequest() {
   const [selectedMessage, setSelectedMessage] = useState(null);
 
   // Compose form
-  const [productName, setProductName] = useState('');
-  const [messageBody, setMessageBody] = useState('');
+  const [productName, setProductName] = useState("");
+  const [messageBody, setMessageBody] = useState("");
   const [sending, setSending] = useState(false);
-  const [productImage, setProductImage] = useState('');
+  const [productImage, setProductImage] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
   const [previewImageUri, setPreviewImageUri] = useState(null);
 
@@ -51,9 +51,9 @@ export default function MessageRequest() {
 
       if (!ownerId && user.stall_owner_account_id) {
         const { data } = await supabase
-          .from('stall_owner')
-          .select('stall_owner_id')
-          .eq('stall_owner_account_id', user.stall_owner_account_id)
+          .from("stall_owner")
+          .select("stall_owner_id")
+          .eq("stall_owner_account_id", user.stall_owner_account_id)
           .maybeSingle();
         if (data) ownerId = data.stall_owner_id;
       }
@@ -63,9 +63,9 @@ export default function MessageRequest() {
 
       if (ownerId) {
         const { data: stallData } = await supabase
-          .from('stall')
-          .select('stall_id, stall_name')
-          .eq('stall_owner_id', ownerId);
+          .from("stall")
+          .select("stall_id, stall_name")
+          .eq("stall_owner_id", ownerId);
         if (mounted && stallData) {
           setStalls(stallData);
           if (stallData.length > 0) setSelectedStallId(stallData[0].stall_id);
@@ -74,7 +74,9 @@ export default function MessageRequest() {
     }
 
     resolve();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [user]);
 
   // Fetch messages
@@ -85,24 +87,26 @@ export default function MessageRequest() {
     async function load() {
       setLoading(true);
       const { data, error } = await supabase
-        .from('message_request')
-        .select('*')
-        .eq('stall_owner_id', stallOwnerId)
-        .order('created_at', { ascending: false });
+        .from("message_request")
+        .select("*")
+        .eq("stall_owner_id", stallOwnerId)
+        .order("created_at", { ascending: false });
 
       if (!error && mounted) setMessages(data || []);
       if (mounted) setLoading(false);
     }
 
     load();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [stallOwnerId]);
 
   const handleAddPicture = async () => {
     setUploadingImage(true);
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: 'image',
+        mediaTypes: "image",
         allowsEditing: true,
         quality: 1,
       });
@@ -112,101 +116,123 @@ export default function MessageRequest() {
         const response = await fetch(uri);
         const blob = await response.blob();
         if (blob.size > 1024 * 1024) {
-          alert('Image must be 1MB or smaller.');
+          alert("Image must be 1MB or smaller.");
           setUploadingImage(false);
           return;
         }
         const { error } = await supabase.storage
-          .from('pns-images')
-          .upload(fileName, blob, { contentType: 'image/jpeg' });
+          .from("pns-images")
+          .upload(fileName, blob, { contentType: "image/jpeg" });
         if (error) {
-          alert('Upload failed: ' + error.message);
+          alert("Upload failed: " + error.message);
           setUploadingImage(false);
           return;
         }
         const { data: urlData } = supabase.storage
-          .from('pns-images')
+          .from("pns-images")
           .getPublicUrl(fileName);
         setProductImage(urlData.publicUrl);
       }
     } catch (e) {
-      alert('Upload failed: ' + e.message);
+      alert("Upload failed: " + e.message);
     }
     setUploadingImage(false);
   };
 
   const handleSend = async () => {
     if (!productName.trim()) {
-      alert('Please enter a product name.');
+      alert("Please enter a product name.");
       return;
     }
     if (!selectedStallId) {
-      alert('Please select a stall.');
+      alert("Please select a stall.");
       return;
     }
 
     setSending(true);
-    const { error } = await supabase.from('message_request').insert([
+    const { error } = await supabase.from("message_request").insert([
       {
         stall_owner_id: stallOwnerId,
         stall_id: selectedStallId,
-        subject: productName.trim(),
+        product_name: productName.trim(),
         message: messageBody.trim() || null,
-        status: 'pending',
-        attached_images: productImage ? JSON.stringify([productImage]) : null,
+        product_image: productImage || null,
+        status: "pending",
       },
     ]);
 
     if (error) {
-      alert('Failed to send message: ' + error.message);
+      alert("Failed to send message: " + error.message);
       setSending(false);
       return;
     }
 
     // Refresh messages
     const { data } = await supabase
-      .from('message_request')
-      .select('*')
-      .eq('stall_owner_id', stallOwnerId)
-      .order('created_at', { ascending: false });
+      .from("message_request")
+      .select("*")
+      .eq("stall_owner_id", stallOwnerId)
+      .order("created_at", { ascending: false });
 
     setMessages(data || []);
-    setProductName('');
-    setMessageBody('');
-    setProductImage('');
+
+    setProductName("");
+    setMessageBody("");
+    setProductImage("");
     setShowComposeModal(false);
     setSending(false);
   };
 
-  const openDetail = (msg) => {
-    setSelectedMessage(msg);
+  const openDetail = async msg => {
     setShowDetailModal(true);
+
+    // Re-fetch the latest version of this message from the database
+    const { data } = await supabase
+      .from("message_request")
+      .select("*")
+      .eq("message_id", msg.message_id)
+      .single();
+
+    setSelectedMessage(data || msg);
   };
 
-  const getStatusColor = (status) => {
+  const getAttachedImage = msg => msg?.product_image || null;
+
+  const getStatusColor = status => {
     switch (status) {
-      case 'pending': return '#FFA726';
-      case 'read': return '#42A5F5';
-      case 'resolved': return '#66BB6A';
-      default: return '#999';
+      case "pending":
+        return "#FFA726";
+      case "read":
+        return "#42A5F5";
+      case "resolved":
+        return "#66BB6A";
+      default:
+        return "#999";
     }
   };
 
-  const getStatusBg = (status) => {
+  const getStatusBg = status => {
     switch (status) {
-      case 'pending': return '#FFF3E0';
-      case 'read': return '#E3F2FD';
-      case 'resolved': return '#E8F5E9';
-      default: return '#F5F5F5';
+      case "pending":
+        return "#FFF3E0";
+      case "read":
+        return "#E3F2FD";
+      case "resolved":
+        return "#E8F5E9";
+      default:
+        return "#F5F5F5";
     }
   };
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '';
+  const formatDate = dateStr => {
+    if (!dateStr) return "";
     const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', {
-      month: 'short', day: 'numeric', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
+    return d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -216,7 +242,10 @@ export default function MessageRequest() {
 
       <View style={styles.main}>
         <View style={styles.headerRow}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
             <Feather name="arrow-left" size={22} color="#222" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Message Requests</Text>
@@ -226,13 +255,20 @@ export default function MessageRequest() {
         </Text>
         <View style={styles.divider} />
 
-        <TouchableOpacity style={styles.composeButton} onPress={() => setShowComposeModal(true)}>
+        <TouchableOpacity
+          style={styles.composeButton}
+          onPress={() => setShowComposeModal(true)}
+        >
           <Feather name="edit" size={18} color="#fff" />
           <Text style={styles.composeButtonText}>New Request</Text>
         </TouchableOpacity>
 
         {loading ? (
-          <ActivityIndicator size="large" color="#6BA06B" style={{ marginTop: 40 }} />
+          <ActivityIndicator
+            size="large"
+            color="#6BA06B"
+            style={{ marginTop: 40 }}
+          />
         ) : messages.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Feather name="mail" size={48} color="#ccc" />
@@ -242,8 +278,11 @@ export default function MessageRequest() {
             </Text>
           </View>
         ) : (
-          <ScrollView style={styles.messageList} showsVerticalScrollIndicator={false}>
-            {messages.map((msg) => (
+          <ScrollView
+            style={styles.messageList}
+            showsVerticalScrollIndicator={false}
+          >
+            {messages.map(msg => (
               <TouchableOpacity
                 key={msg.message_id}
                 style={styles.messageCard}
@@ -251,10 +290,20 @@ export default function MessageRequest() {
               >
                 <View style={styles.messageCardHeader}>
                   <Text style={styles.messageSubject} numberOfLines={1}>
-                    {msg.subject}
+                    {msg.product_name}
                   </Text>
-                  <View style={[styles.statusBadge, { backgroundColor: getStatusBg(msg.status) }]}>
-                    <Text style={[styles.statusText, { color: getStatusColor(msg.status) }]}>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      { backgroundColor: getStatusBg(msg.status) },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.statusText,
+                        { color: getStatusColor(msg.status) },
+                      ]}
+                    >
                       {msg.status.charAt(0).toUpperCase() + msg.status.slice(1)}
                     </Text>
                   </View>
@@ -262,10 +311,16 @@ export default function MessageRequest() {
                 <Text style={styles.messagePreview} numberOfLines={2}>
                   {msg.message}
                 </Text>
-                <Text style={styles.messageDate}>{formatDate(msg.created_at)}</Text>
+                <Text style={styles.messageDate}>
+                  {formatDate(msg.created_at)}
+                </Text>
                 {msg.admin_reply && (
                   <View style={styles.replyPreview}>
-                    <Feather name="corner-down-right" size={14} color="#6BA06B" />
+                    <Feather
+                      name="corner-down-right"
+                      size={14}
+                      color="#6BA06B"
+                    />
                     <Text style={styles.replyPreviewText} numberOfLines={1}>
                       Admin replied
                     </Text>
@@ -280,7 +335,12 @@ export default function MessageRequest() {
       {/* Compose Modal */}
       <Modal visible={showComposeModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <Pressable style={styles.backdrop} onPress={() => setShowComposeModal(false)} />
+          <Pressable
+            style={styles.backdrop}
+            onPress={() => {
+              setShowComposeModal(false);
+            }}
+          />
           <View style={styles.composeBox}>
             <Text style={styles.composeTitle}>New Message Request</Text>
 
@@ -288,19 +348,21 @@ export default function MessageRequest() {
               <>
                 <Text style={styles.label}>Stall</Text>
                 <View style={styles.stallSelector}>
-                  {stalls.map((s) => (
+                  {stalls.map(s => (
                     <TouchableOpacity
                       key={s.stall_id}
                       style={[
                         styles.stallOption,
-                        selectedStallId === s.stall_id && styles.stallOptionActive,
+                        selectedStallId === s.stall_id &&
+                          styles.stallOptionActive,
                       ]}
                       onPress={() => setSelectedStallId(s.stall_id)}
                     >
                       <Text
                         style={[
                           styles.stallOptionText,
-                          selectedStallId === s.stall_id && styles.stallOptionTextActive,
+                          selectedStallId === s.stall_id &&
+                            styles.stallOptionTextActive,
                         ]}
                       >
                         {s.stall_name}
@@ -321,10 +383,18 @@ export default function MessageRequest() {
             />
 
             <Text style={styles.label}>Product Image</Text>
-            <TouchableOpacity style={styles.productImageBox} onPress={handleAddPicture} disabled={uploadingImage}>
+            <TouchableOpacity
+              style={styles.productImageBox}
+              onPress={handleAddPicture}
+              disabled={uploadingImage}
+            >
               {productImage ? (
                 <>
-                  <Image source={{ uri: productImage }} style={styles.productImagePreview} resizeMode="cover" />
+                  <Image
+                    source={{ uri: productImage }}
+                    style={styles.productImagePreview}
+                    resizeMode="cover"
+                  />
                   <View style={styles.productImageOverlay}>
                     <Feather name="camera" size={18} color="#fff" />
                     <Text style={styles.productImageOverlayText}>Change</Text>
@@ -334,13 +404,18 @@ export default function MessageRequest() {
                 <View style={styles.productImagePlaceholder}>
                   <Feather name="image" size={28} color="#bbb" />
                   <Text style={styles.productImagePlaceholderText}>
-                    {uploadingImage ? 'Uploading...' : 'Tap to upload image'}
+                    {uploadingImage ? "Uploading..." : "Tap to upload image"}
                   </Text>
                 </View>
               )}
             </TouchableOpacity>
 
-            <Text style={styles.label}>Message <Text style={{ color: '#999', fontWeight: '400' }}>(optional)</Text></Text>
+            <Text style={styles.label}>
+              Message{" "}
+              <Text style={{ color: "#999", fontWeight: "400" }}>
+                (optional)
+              </Text>
+            </Text>
             <TextInput
               style={[styles.input, styles.textArea]}
               value={messageBody}
@@ -357,9 +432,9 @@ export default function MessageRequest() {
                 style={styles.cancelBtn}
                 onPress={() => {
                   setShowComposeModal(false);
-                  setProductName('');
-                  setMessageBody('');
-                  setProductImage('');
+                  setProductName("");
+                  setMessageBody("");
+                  setProductImage("");
                 }}
               >
                 <Text style={styles.cancelBtnText}>Cancel</Text>
@@ -371,7 +446,7 @@ export default function MessageRequest() {
               >
                 <Feather name="send" size={16} color="#fff" />
                 <Text style={styles.sendBtnText}>
-                  {sending ? 'Sending...' : 'Send'}
+                  {sending ? "Sending..." : "Send"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -382,12 +457,17 @@ export default function MessageRequest() {
       {/* Detail Modal */}
       <Modal visible={showDetailModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <Pressable style={styles.backdrop} onPress={() => setShowDetailModal(false)} />
+          <Pressable
+            style={styles.backdrop}
+            onPress={() => setShowDetailModal(false)}
+          />
           <View style={styles.detailBox}>
             {selectedMessage && (
               <>
                 <View style={styles.detailHeader}>
-                  <Text style={styles.detailSubject}>{selectedMessage.subject}</Text>
+                  <Text style={styles.detailSubject}>
+                    {selectedMessage.product_name}
+                  </Text>
                   <View
                     style={[
                       styles.statusBadge,
@@ -410,14 +490,41 @@ export default function MessageRequest() {
                 </Text>
                 <View style={styles.detailDivider} />
                 <Text style={styles.detailBody}>{selectedMessage.message}</Text>
+                {getAttachedImage(selectedMessage) && (
+                  <TouchableOpacity
+                    style={styles.detailImageWrap}
+                    onPress={() =>
+                      setPreviewImageUri(getAttachedImage(selectedMessage))
+                    }
+                    activeOpacity={0.85}
+                  >
+                    <Image
+                      source={{ uri: getAttachedImage(selectedMessage) }}
+                      style={styles.detailImage}
+                      resizeMode="cover"
+                    />
+                    <View style={styles.detailImageOverlay}>
+                      <Feather name="zoom-in" size={16} color="#fff" />
+                      <Text style={styles.detailImageOverlayText}>
+                        Tap to enlarge
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
 
                 {selectedMessage.admin_reply && (
                   <View style={styles.replySection}>
                     <View style={styles.replySectionHeader}>
-                      <Feather name="corner-down-right" size={16} color="#6BA06B" />
+                      <Feather
+                        name="corner-down-right"
+                        size={16}
+                        color="#6BA06B"
+                      />
                       <Text style={styles.replySectionTitle}>Admin Reply</Text>
                     </View>
-                    <Text style={styles.replyBody}>{selectedMessage.admin_reply}</Text>
+                    <Text style={styles.replyBody}>
+                      {selectedMessage.admin_reply}
+                    </Text>
                     {selectedMessage.replied_at && (
                       <Text style={styles.replyDate}>
                         {formatDate(selectedMessage.replied_at)}
@@ -425,7 +532,6 @@ export default function MessageRequest() {
                     )}
                   </View>
                 )}
-
                 <TouchableOpacity
                   style={styles.closeDetailBtn}
                   onPress={() => setShowDetailModal(false)}
@@ -461,170 +567,312 @@ export default function MessageRequest() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, flexDirection: 'row', backgroundColor: '#f9f9f9' },
-  main: { flex: 1, backgroundColor: '#fff', padding: 40 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  root: { flex: 1, flexDirection: "row", backgroundColor: "#f9f9f9" },
+  main: { flex: 1, backgroundColor: "#fff", padding: 40 },
+  headerRow: { flexDirection: "row", alignItems: "center", marginBottom: 4 },
   backButton: { marginRight: 14, padding: 4 },
-  headerTitle: { fontSize: 24, fontWeight: '700', color: '#222' },
-  subtitle: { color: '#666', fontSize: 14, marginBottom: 8 },
-  divider: { height: 1, backgroundColor: '#e0e0e0', marginVertical: 12 },
+  headerTitle: { fontSize: 24, fontWeight: "700", color: "#222" },
+  subtitle: { color: "#666", fontSize: 14, marginBottom: 8 },
+  divider: { height: 1, backgroundColor: "#e0e0e0", marginVertical: 12 },
 
   composeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#6BA06B',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#6BA06B",
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 20,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     marginBottom: 24,
     gap: 8,
   },
-  composeButtonText: { color: '#fff', fontWeight: '600', fontSize: 15 },
+  composeButtonText: { color: "#fff", fontWeight: "600", fontSize: 15 },
 
-  emptyContainer: { alignItems: 'center', marginTop: 80 },
-  emptyText: { fontSize: 18, color: '#999', marginTop: 16, fontWeight: '600' },
-  emptySubtext: { fontSize: 14, color: '#bbb', marginTop: 6 },
+  emptyContainer: { alignItems: "center", marginTop: 80 },
+  emptyText: { fontSize: 18, color: "#999", marginTop: 16, fontWeight: "600" },
+  emptySubtext: { fontSize: 14, color: "#bbb", marginTop: 6 },
 
   messageList: { flex: 1 },
   messageCard: {
-    backgroundColor: '#FAFAFA',
+    backgroundColor: "#FAFAFA",
     borderRadius: 10,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#ECECEC',
+    borderColor: "#ECECEC",
   },
   messageCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 6,
   },
-  messageSubject: { fontSize: 16, fontWeight: '600', color: '#222', flex: 1, marginRight: 12 },
+  messageSubject: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#222",
+    flex: 1,
+    marginRight: 12,
+  },
   statusBadge: { borderRadius: 12, paddingHorizontal: 10, paddingVertical: 3 },
-  statusText: { fontSize: 12, fontWeight: '600' },
-  messagePreview: { fontSize: 14, color: '#666', marginBottom: 6 },
-  messageDate: { fontSize: 12, color: '#aaa' },
-  replyPreview: { flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 6 },
-  replyPreviewText: { fontSize: 13, color: '#6BA06B', fontWeight: '500' },
+  statusText: { fontSize: 12, fontWeight: "600" },
+  messagePreview: { fontSize: 14, color: "#666", marginBottom: 6 },
+  messageDate: { fontSize: 12, color: "#aaa" },
+  replyPreview: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+    gap: 6,
+  },
+  replyPreviewText: { fontSize: 13, color: "#6BA06B", fontWeight: "500" },
 
   /* Modals */
-  modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  modalOverlay: { flex: 1, justifyContent: "center", alignItems: "center" },
   backdrop: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.3)",
   },
 
   /* Compose */
   composeBox: {
-    backgroundColor: '#fff', borderRadius: 16, width: 480, padding: 32,
-    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 }, elevation: 8,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    width: 480,
+    padding: 32,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
   },
-  composeTitle: { fontSize: 20, fontWeight: '600', color: '#222', marginBottom: 20, textAlign: 'center' },
-  label: { fontSize: 14, fontWeight: '500', color: '#333', marginBottom: 6, marginTop: 12 },
+  composeTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#222",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#333",
+    marginBottom: 6,
+    marginTop: 12,
+  },
   input: {
-    borderWidth: 1, borderColor: '#ddd', borderRadius: 8,
-    paddingHorizontal: 14, paddingVertical: 10, fontSize: 15,
-    backgroundColor: '#F9F9F9', color: '#222',
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 15,
+    backgroundColor: "#F9F9F9",
+    color: "#222",
   },
-  textArea: { minHeight: 120, textAlignVertical: 'top' },
-  stallSelector: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  textArea: { minHeight: 120, textAlignVertical: "top" },
+  stallSelector: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
   stallOption: {
-    paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8,
-    borderWidth: 1, borderColor: '#ddd', backgroundColor: '#f9f9f9',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    backgroundColor: "#f9f9f9",
   },
-  stallOptionActive: { backgroundColor: '#6BA06B', borderColor: '#6BA06B' },
-  stallOptionText: { fontSize: 14, color: '#666' },
-  stallOptionTextActive: { color: '#fff', fontWeight: '600' },
-  composeActions: { flexDirection: 'row', gap: 12, marginTop: 24 },
+  stallOptionActive: { backgroundColor: "#6BA06B", borderColor: "#6BA06B" },
+  stallOptionText: { fontSize: 14, color: "#666" },
+  stallOptionTextActive: { color: "#fff", fontWeight: "600" },
+  composeActions: { flexDirection: "row", gap: 12, marginTop: 24 },
   cancelBtn: {
-    flex: 1, paddingVertical: 12, borderRadius: 8,
-    backgroundColor: '#f0f0f0', alignItems: 'center',
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: "#f0f0f0",
+    alignItems: "center",
   },
-  cancelBtnText: { color: '#666', fontWeight: '600', fontSize: 15 },
+  cancelBtnText: { color: "#666", fontWeight: "600", fontSize: 15 },
   sendBtn: {
-    flex: 1, paddingVertical: 12, borderRadius: 8,
-    backgroundColor: '#6BA06B', alignItems: 'center',
-    flexDirection: 'row', justifyContent: 'center', gap: 8,
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: "#6BA06B",
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 8,
   },
-  sendBtnText: { color: '#fff', fontWeight: '600', fontSize: 15 },
+  sendBtnText: { color: "#fff", fontWeight: "600", fontSize: 15 },
 
   /* Detail */
   detailBox: {
-    backgroundColor: '#fff', borderRadius: 16, width: 500, padding: 32,
-    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 }, elevation: 8, maxHeight: '80%',
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    width: 500,
+    padding: 32,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+    maxHeight: "80%",
   },
   detailHeader: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 4,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
   },
-  detailSubject: { fontSize: 20, fontWeight: '600', color: '#222', flex: 1, marginRight: 12 },
-  detailDate: { fontSize: 13, color: '#aaa', marginBottom: 12 },
-  detailDivider: { height: 1, backgroundColor: '#e0e0e0', marginBottom: 16 },
-  detailBody: { fontSize: 15, color: '#333', lineHeight: 22 },
+  detailSubject: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#222",
+    flex: 1,
+    marginRight: 12,
+  },
+  detailDate: { fontSize: 13, color: "#aaa", marginBottom: 12 },
+  detailDivider: { height: 1, backgroundColor: "#e0e0e0", marginBottom: 16 },
+  detailBody: { fontSize: 15, color: "#333", lineHeight: 22 },
 
   replySection: {
-    marginTop: 20, backgroundColor: '#F0F7EF', borderRadius: 10,
-    padding: 16, borderLeftWidth: 3, borderLeftColor: '#6BA06B',
+    marginTop: 20,
+    backgroundColor: "#F0F7EF",
+    borderRadius: 10,
+    padding: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: "#6BA06B",
   },
-  replySectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
-  replySectionTitle: { fontSize: 14, fontWeight: '600', color: '#6BA06B' },
-  replyBody: { fontSize: 14, color: '#333', lineHeight: 20 },
-  replyDate: { fontSize: 12, color: '#aaa', marginTop: 8 },
+  replySectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 8,
+  },
+  replySectionTitle: { fontSize: 14, fontWeight: "600", color: "#6BA06B" },
+  replyBody: { fontSize: 14, color: "#333", lineHeight: 20 },
+  replyDate: { fontSize: 12, color: "#aaa", marginTop: 8 },
 
   closeDetailBtn: {
-    marginTop: 24, paddingVertical: 12, borderRadius: 8,
-    backgroundColor: '#f0f0f0', alignItems: 'center',
+    marginTop: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: "#f0f0f0",
+    alignItems: "center",
   },
-  closeDetailBtnText: { color: '#444', fontWeight: '600', fontSize: 15 },
+  closeDetailBtnText: { color: "#444", fontWeight: "600", fontSize: 15 },
 
   /* Pictures */
   thumbRow: { marginBottom: 10 },
-  thumbWrap: { position: 'relative', width: 80, height: 80 },
-  thumbImage: { width: 80, height: 80, borderRadius: 8, backgroundColor: '#f0f0f0' },
+  thumbWrap: { position: "relative", width: 80, height: 80 },
+  thumbImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    backgroundColor: "#f0f0f0",
+  },
   thumbRemove: {
-    position: 'absolute', top: 4, right: 4,
-    backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 10,
-    width: 20, height: 20, alignItems: 'center', justifyContent: 'center',
+    position: "absolute",
+    top: 4,
+    right: 4,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
   },
   addPicturesBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: '#6BA06B', borderRadius: 8,
-    paddingVertical: 10, gap: 8, marginTop: 4, marginBottom: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: "#6BA06B",
+    borderRadius: 8,
+    paddingVertical: 10,
+    gap: 8,
+    marginTop: 4,
+    marginBottom: 4,
   },
-  addPicturesBtnText: { color: '#6BA06B', fontWeight: '600', fontSize: 14 },
+  addPicturesBtnText: { color: "#6BA06B", fontWeight: "600", fontSize: 14 },
 
   /* Product image upload */
   productImageBox: {
-    width: '100%', height: 180, borderRadius: 10, overflow: 'hidden',
-    backgroundColor: '#F3F4F6', borderWidth: 1, borderColor: '#e0e0e0',
-    marginBottom: 4, position: 'relative',
+    width: "100%",
+    height: 180,
+    borderRadius: 10,
+    overflow: "hidden",
+    backgroundColor: "#F3F4F6",
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    marginBottom: 4,
+    position: "relative",
   },
-  productImagePreview: { width: '100%', height: '100%' },
+  productImagePreview: { width: "100%", height: "100%" },
   productImageOverlay: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 8, gap: 6,
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
+    gap: 6,
   },
-  productImageOverlayText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  productImageOverlayText: { color: "#fff", fontSize: 13, fontWeight: "600" },
   productImagePlaceholder: {
-    flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8,
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
   },
-  productImagePlaceholderText: { color: '#aaa', fontSize: 13 },
+  productImagePlaceholderText: { color: "#aaa", fontSize: 13 },
 
   /* Full-size preview */
   previewOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.88)',
-    justifyContent: 'center', alignItems: 'center',
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.88)",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  previewImage: { width: '90%', height: '80%' },
+  previewImage: { width: "90%", height: "80%" },
   previewClose: {
-    position: 'absolute', top: 20, right: 20,
-    backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20,
-    width: 40, height: 40, alignItems: 'center', justifyContent: 'center',
+    position: "absolute",
+    top: 20,
+    right: 20,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
   },
+
+  detailImageWrap: {
+    width: "100%",
+    height: 200,
+    borderRadius: 10,
+    overflow: "hidden",
+    marginTop: 16,
+    position: "relative",
+    backgroundColor: "#f0f0f0",
+  },
+  detailImage: { width: "100%", height: "100%" },
+  detailImageOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 7,
+    gap: 6,
+  },
+  detailImageOverlayText: { color: "#fff", fontSize: 12, fontWeight: "600" },
 });
